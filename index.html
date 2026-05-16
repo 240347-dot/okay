@@ -228,6 +228,10 @@
         const SUPABASE_KEY = 'sb_publishable_jMtOL78wL9cxkMDOTi40pg_Gqco-1zy';
         // ==========================================
 
+        // ========== ТВОЯ ССЫЛКА НА GITHUB PAGES ==========
+        const GITHUB_PAGES_URL = 'https://240347-dot.github.io/okay/';
+        // ================================================
+
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // DOM элементы
@@ -240,12 +244,12 @@
         // Текущий пользователь
         let currentUser = null;
 
-        // Вход через Google
+        // Вход через Google с редиректом на GitHub Pages
         async function signInWithGoogle() {
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: GITHUB_PAGES_URL
                 }
             });
             
