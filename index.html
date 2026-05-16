@@ -45,7 +45,6 @@
             padding-left: 12px;
         }
 
-        /* Профиль пользователя */
         .user-header {
             display: flex;
             align-items: center;
@@ -78,7 +77,6 @@
             color: #666;
         }
 
-        /* Кнопки статусов */
         .status-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -106,7 +104,6 @@
         .btn-end { background: linear-gradient(135deg, #dc3545, #c82333); }
         .btn-exit { background: linear-gradient(135deg, #6c757d, #495057); }
 
-        /* Таймер */
         .timer-section {
             text-align: center;
             padding: 20px;
@@ -128,7 +125,6 @@
             color: #28a745;
         }
 
-        /* Монитор группы */
         .group-list {
             max-height: 400px;
             overflow-y: auto;
@@ -162,6 +158,9 @@
 
         .member-name {
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .member-status {
@@ -182,14 +181,23 @@
             border-radius: 50%;
             background: #28a745;
             display: inline-block;
-            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         .offline-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
             background: #dc3545;
+            display: inline-block;
         }
 
-        /* Чат */
         .chat-messages {
             height: 300px;
             overflow-y: auto;
@@ -257,11 +265,18 @@
             color: #28a745;
             margin-left: 12px;
         }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Левая колонка: Профиль пользователя -->
         <div class="card">
             <div class="user-header">
                 <div class="user-avatar" id="userAvatar">A</div>
@@ -285,7 +300,6 @@
             </div>
         </div>
 
-        <!-- Правая колонка: Монитор группы -->
         <div class="card">
             <h2>👥 Монитор группы <span id="onlineCount" class="online-count"></span></h2>
             <div class="group-list" id="groupList">
@@ -293,7 +307,6 @@
             </div>
         </div>
 
-        <!-- Нижняя колонка: Общий чат -->
         <div class="card full-width">
             <h2>💬 Общий чат</h2>
             <div class="chat-messages" id="chatMessages">
@@ -309,11 +322,8 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // ========== ТВОИ ДАННЫЕ SUPABASE ==========
         const SUPABASE_URL = 'https://dsbllavkdvjrclihfbwv.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_jMtOL78wL9cxkMDOTi40pg_Gqco-1zy';
-        const GITHUB_PAGES_URL = 'https://240347-dot.github.io/okay/';
-        // ==========================================
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -321,6 +331,8 @@
         let studyTimer = null;
         let studySeconds = 0;
         let currentStatus = 'exit';
+        let heartbeatInterval = null;
+        let realtimeSubscription = null;
 
         // Элементы DOM
         const userNameEl = document.getElementById('userName');
@@ -339,7 +351,6 @@
             studyTimer = setInterval(() => {
                 studySeconds++;
                 updateTimerDisplay();
-                // Сохраняем время в БД каждые 10 секунд
                 if (studySeconds % 10 === 0 && currentUser) {
                     saveStudyTime();
                 }
@@ -376,16 +387,47 @@
         async function loadStudyTime(userId) {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('study_seconds, status')
+                .select('study_seconds, status_type')
                 .eq('id', userId)
                 .single();
             
             if (data && !error) {
                 studySeconds = data.study_seconds || 0;
                 updateTimerDisplay();
-                if (data.status === 'study') {
+                if (data.status_type === 'study') {
                     startTimer();
+                    currentStatus = 'study';
                 }
+            }
+        }
+
+        // ========== ОБНОВЛЕНИЕ АКТИВНОСТИ (HEARTBEAT) ==========
+        async function updateHeartbeat() {
+            if (!currentUser) return;
+            
+            const now = new Date().toISOString();
+            await supabase
+                .from('profiles')
+                .update({ last_active: now })
+                .eq('id', currentUser.id);
+            
+            console.log('Heartbeat отправлен в:', now);
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            // Отправляем heartbeat каждые 30 секунд
+            heartbeatInterval = setInterval(() => {
+                updateHeartbeat();
+            }, 30000);
+            // Сразу отправляем первый
+            updateHeartbeat();
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
             }
         }
 
@@ -393,7 +435,6 @@
         async function updateStatus(statusLabel, statusType) {
             if (!currentUser) return;
 
-            // Обработка таймера
             if (statusType === 'study') {
                 if (currentStatus !== 'study') {
                     startTimer();
@@ -422,6 +463,10 @@
 
             if (error) {
                 console.error('Ошибка обновления статуса:', error);
+                alert('Ошибка: ' + error.message);
+            } else {
+                // После смены статуса обновляем список
+                await fetchGroup();
             }
         }
 
@@ -437,34 +482,68 @@
                 return;
             }
 
-            // Фильтруем онлайн (активность за последние 5 минут)
-            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-            const onlineUsers = data.filter(u => u.last_active > fiveMinutesAgo && u.status_type !== 'exit');
+            // Определяем онлайн: активность за последние 60 секунд И не в статусе 'exit'
+            const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+            
+            const onlineUsers = data.filter(user => {
+                if (user.status_type === 'exit') return false;
+                if (!user.last_active) return false;
+                return user.last_active > oneMinuteAgo;
+            });
+            
             const onlineCount = onlineUsers.length;
-            onlineCountSpan.textContent = `🟢 Онлайн: ${onlineCount}`;
+            onlineCountSpan.innerHTML = `🟢 Онлайн: ${onlineCount}`;
 
             groupList.innerHTML = data.map(user => {
+                const isOnline = user.status_type !== 'exit' && user.last_active && user.last_active > oneMinuteAgo;
+                
                 let statusText = '';
                 let statusColor = '';
+                let statusIcon = '';
                 
                 switch(user.status_type) {
-                    case 'study': statusText = '📚 Учится'; statusColor = '#28a745'; break;
-                    case 'break': statusText = '☕ Перерыв'; statusColor = '#ffc107'; break;
-                    case 'end': statusText = '🏁 Завершил'; statusColor = '#dc3545'; break;
-                    case 'exit': statusText = '⚫ Не в сети'; statusColor = '#6c757d'; break;
-                    default: statusText = user.status || '⚪ Не в сети'; statusColor = '#6c757d';
+                    case 'study': 
+                        statusText = '📚 Учится'; 
+                        statusColor = '#28a745'; 
+                        statusIcon = '📚';
+                        break;
+                    case 'break': 
+                        statusText = '☕ Перерыв'; 
+                        statusColor = '#ffc107'; 
+                        statusIcon = '☕';
+                        break;
+                    case 'end': 
+                        statusText = '🏁 Завершил сессию'; 
+                        statusColor = '#dc3545'; 
+                        statusIcon = '🏁';
+                        break;
+                    case 'exit': 
+                        statusText = '⚫ Не в сети'; 
+                        statusColor = '#6c757d'; 
+                        statusIcon = '⚫';
+                        break;
+                    default: 
+                        statusText = user.status || '⚪ Не в сети'; 
+                        statusColor = '#6c757d';
+                        statusIcon = '⚪';
                 }
 
-                const isOnline = user.last_active > fiveMinutesAgo && user.status_type !== 'exit';
                 const timeStr = user.study_seconds ? formatTime(user.study_seconds) : '0ч 0м';
+                const isCurrentUser = user.id === currentUser?.id;
 
                 return `
-                    <div class="group-member">
+                    <div class="group-member" style="background: ${isCurrentUser ? '#f0f4ff' : 'transparent'}; padding: 12px; border-radius: 12px; margin-bottom: 8px;">
                         <div class="member-info">
                             <div class="member-avatar">${(user.username || 'U')[0].toUpperCase()}</div>
                             <div>
-                                <div class="member-name">${escapeHtml(user.username)} ${isOnline ? '<span class="online-dot"></span>' : ''}</div>
-                                <div class="member-status" style="color: ${statusColor}">${statusText}</div>
+                                <div class="member-name">
+                                    ${escapeHtml(user.username)} 
+                                    ${isCurrentUser ? ' (вы)' : ''}
+                                    ${isOnline ? '<span class="online-dot" title="Онлайн"></span>' : '<span class="offline-dot" title="Офлайн"></span>'}
+                                </div>
+                                <div class="member-status" style="color: ${statusColor}">
+                                    ${statusIcon} ${statusText}
+                                </div>
                             </div>
                         </div>
                         <div class="member-time">${timeStr}</div>
@@ -477,7 +556,8 @@
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
             if (hours > 0) return `${hours}ч ${minutes}м`;
-            return `${minutes}м`;
+            if (minutes > 0) return `${minutes}м`;
+            return `${seconds}с`;
         }
 
         // ========== ЧАТ ==========
@@ -496,6 +576,7 @@
 
             if (error) {
                 console.error('Ошибка отправки:', error);
+                alert('Ошибка: ' + error.message);
             } else {
                 chatInput.value = '';
             }
@@ -514,7 +595,7 @@
             }
 
             if (!data || data.length === 0) {
-                chatMessages.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">Нет сообщений. Напишите первое!</div>';
+                chatMessages.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">💬 Нет сообщений. Напишите первое!</div>';
                 return;
             }
 
@@ -525,7 +606,6 @@
                 </div>
             `).join('');
             
-            // Скролл вниз
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
@@ -549,6 +629,29 @@
             if (error) console.error('Ошибка синхронизации:', error);
         }
 
+        // ========== REALTIME ==========
+        function setupRealtimeSubscriptions() {
+            if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+            }
+            
+            realtimeSubscription = supabase
+                .channel('public-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+                    fetchGroup();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+                    fetchMessages();
+                })
+                .subscribe();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+        }
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ ==========
         async function onAuthStateChange(user) {
             if (user) {
                 currentUser = user;
@@ -562,51 +665,29 @@
                 await fetchGroup();
                 await fetchMessages();
                 
-                // Обновляем last_active каждые 30 секунд
-                setInterval(async () => {
-                    if (currentUser) {
-                        await supabase
-                            .from('profiles')
-                            .update({ last_active: new Date().toISOString() })
-                            .eq('id', currentUser.id);
-                        fetchGroup();
-                    }
-                }, 30000);
-                
+                startHeartbeat();
                 setupRealtimeSubscriptions();
+            } else {
+                // Пользователь вышел
+                currentUser = null;
+                stopTimer();
+                stopHeartbeat();
+                
+                if (realtimeSubscription) {
+                    realtimeSubscription.unsubscribe();
+                    realtimeSubscription = null;
+                }
+                
+                // Перенаправляем на страницу входа или показываем кнопку
+                location.reload();
             }
         }
 
-        // ========== REALTIME ==========
-        function setupRealtimeSubscriptions() {
-            // Подписка на изменения profiles
-            supabase
-                .channel('profiles-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-                    fetchGroup();
-                })
-                .subscribe();
-
-            // Подписка на новые сообщения
-            supabase
-                .channel('messages-changes')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-                    fetchMessages();
-                })
-                .subscribe();
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-        }
-
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        // Обработчики кнопок
+        // ========== ОБРАБОТЧИКИ ==========
         document.querySelectorAll('.status-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const statusType = btn.getAttribute('data-status');
-                const statusLabel = btn.textContent;
+                const statusLabel = btn.getAttribute('data-label');
                 updateStatus(statusLabel, statusType);
             });
         });
@@ -616,13 +697,29 @@
             if (e.key === 'Enter') sendMessage();
         });
 
-        // Авторизация
-        supabase.auth.onAuthStateChange((event, session) => {
-            onAuthStateChange(session?.user || null);
+        // ========== ЗАПУСК ==========
+        // Проверяем сессию при загрузке
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                onAuthStateChange(session.user);
+            } else {
+                // Если нет сессии, перенаправляем на вход через Google
+                supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin
+                    }
+                });
+            }
         });
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            onAuthStateChange(session?.user || null);
+        // Слушаем изменения авторизации
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                onAuthStateChange(null);
+            } else if (session?.user) {
+                onAuthStateChange(session.user);
+            }
         });
     </script>
 </body>
