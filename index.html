@@ -45,13 +45,6 @@
             padding-left: 12px;
         }
 
-        h3 {
-            font-size: 16px;
-            margin: 16px 0 12px 0;
-            color: #333;
-        }
-
-        /* Профиль */
         .user-header {
             display: flex;
             align-items: center;
@@ -75,8 +68,8 @@
         }
 
         .user-name h3 {
-            margin: 0;
             font-size: 18px;
+            margin-bottom: 4px;
         }
 
         .user-name p {
@@ -84,7 +77,6 @@
             color: #666;
         }
 
-        /* Кнопки статусов */
         .status-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -109,7 +101,6 @@
         .btn-end { background: linear-gradient(135deg, #dc3545, #c82333); }
         .btn-exit { background: linear-gradient(135deg, #6c757d, #495057); }
 
-        /* Таймер */
         .timer-section {
             text-align: center;
             padding: 20px;
@@ -125,7 +116,6 @@
             color: #28a745;
         }
 
-        /* Достижения */
         .achievements-list {
             display: flex;
             flex-wrap: wrap;
@@ -154,11 +144,6 @@
             color: white;
         }
 
-        .achievement-icon {
-            font-size: 18px;
-        }
-
-        /* Рейтинг */
         .rating-list {
             max-height: 400px;
             overflow-y: auto;
@@ -201,18 +186,12 @@
             font-weight: 600;
         }
 
-        .rating-points {
-            font-size: 11px;
-            color: #666;
-        }
-
         .rating-time {
             font-size: 12px;
             font-family: monospace;
             color: #28a745;
         }
 
-        /* Монитор группы */
         .group-list {
             max-height: 400px;
             overflow-y: auto;
@@ -259,7 +238,6 @@
             100% { opacity: 1; }
         }
 
-        /* Чат */
         .chat-messages {
             height: 250px;
             overflow-y: auto;
@@ -346,6 +324,21 @@
             gap: 12px;
             margin-top: 20px;
         }
+
+        .google-btn:hover {
+            background: #f5f5f5;
+            border-color: #667eea;
+        }
+
+        .logout-top {
+            margin-left: auto;
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -353,7 +346,7 @@
     <div id="loginPage" class="login-container">
         <div class="card login-card">
             <h2>📊 Монитор статусов</h2>
-            <p style="margin: 16px 0;">Войдите через Google</p>
+            <p style="margin: 16px 0;">Войдите через Google, чтобы продолжить</p>
             <button class="google-btn" id="loginBtn">
                 <svg width="20" height="20" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -368,7 +361,7 @@
 
     <!-- Основное приложение -->
     <div id="app" class="container hidden">
-        <!-- Колонка 1: Профиль и статус -->
+        <!-- Колонка 1: Профиль -->
         <div class="card">
             <div class="user-header">
                 <div class="user-avatar" id="userAvatar">A</div>
@@ -376,7 +369,7 @@
                     <h3 id="userName">Загрузка...</h3>
                     <p id="userEmail"></p>
                 </div>
-                <button id="logoutButton" style="margin-left: auto; padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 12px; cursor: pointer;">🚪</button>
+                <button id="logoutButton" class="logout-top">🚪 Выйти</button>
             </div>
 
             <h2>📊 Учебная сессия</h2>
@@ -397,7 +390,7 @@
             </div>
         </div>
 
-        <!-- Колонка 2: Рейтинг топ студентов -->
+        <!-- Колонка 2: Рейтинг -->
         <div class="card">
             <h2>📈 Топ студентов</h2>
             <div class="rating-list" id="ratingList">
@@ -413,7 +406,7 @@
             </div>
         </div>
 
-        <!-- Чат на всю ширину -->
+        <!-- Чат -->
         <div class="card full-width">
             <h2>💬 Общий чат</h2>
             <div class="chat-messages" id="chatMessages">
@@ -438,7 +431,6 @@
         let studySeconds = 0;
         let studyTimer = null;
         let heartbeatInterval = null;
-        let messageCount = 0;
 
         // Элементы DOM
         const loginPage = document.getElementById('loginPage');
@@ -456,27 +448,23 @@
         const chatInput = document.getElementById('chatInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        // ========== СПИСОК ДОСТИЖЕНИЙ ==========
+        // Список достижений
         const ACHIEVEMENTS = {
             early_bird: { name: '🐦 Ранняя пташка', desc: 'Зашел до 8:00', icon: '🐦' },
             marathoner: { name: '🏃 Марафонец', desc: 'Проучился более 2 часов за раз', icon: '🏃' },
             activist: { name: '🎙 Активист', desc: 'Написал 20 сообщений в чате', icon: '🎙' },
             hardworker: { name: '💪 Трудяга', desc: 'Общее время учебы более 10 часов', icon: '💪' },
             consistent: { name: '📆 Постоянный', desc: 'Заходил 5 дней подряд', icon: '📆' },
-            speedy: { name: '⚡ Скоростной', desc: 'Статус "Учусь" более 3 часов за день', icon: '⚡' }
+            speedy: { name: '⚡ Скоростной', desc: 'Учился более 3 часов за день', icon: '⚡' }
         };
 
-        // ========== ФУНКЦИИ ТАЙМЕРА ==========
+        // ========== ТАЙМЕР ==========
         function startTimer() {
             if (studyTimer) clearInterval(studyTimer);
             studyTimer = setInterval(() => {
                 studySeconds++;
                 updateTimerDisplay();
-                if (studySeconds % 60 === 0) {
-                    saveStudyTime();
-                    checkMarathonAchievement();
-                    checkHardworkerAchievement();
-                }
+                if (studySeconds % 60 === 0) saveStudyTime();
             }, 1000);
         }
 
@@ -496,60 +484,11 @@
 
         async function saveStudyTime() {
             if (!currentUser) return;
-            await supabase
-                .from('profiles')
-                .update({ study_seconds: studySeconds })
-                .eq('id', currentUser.id);
+            await supabase.from('profiles').update({ study_seconds: studySeconds }).eq('id', currentUser.id);
+            fetchRating();
         }
 
-        // ========== ПРОВЕРКА ДОСТИЖЕНИЙ ==========
-        async function checkEarlyBirdAchievement() {
-            const hour = new Date().getHours();
-            if (hour < 8 && currentUser) {
-                await unlockAchievement('early_bird');
-            }
-        }
-
-        async function checkMarathonAchievement() {
-            if (studySeconds >= 7200 && currentUser) { // 2 часа = 7200 секунд
-                await unlockAchievement('marathoner');
-            }
-        }
-
-        async function checkHardworkerAchievement() {
-            const { data } = await supabase
-                .from('profiles')
-                .select('study_seconds')
-                .eq('id', currentUser.id)
-                .single();
-            if (data && data.study_seconds >= 36000) { // 10 часов
-                await unlockAchievement('hardworker');
-            }
-        }
-
-        async function checkActivistAchievement() {
-            const { count } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', currentUser.id);
-            if (count >= 20) {
-                await unlockAchievement('activist');
-            }
-        }
-
-        async function checkSpeedyAchievement() {
-            const today = new Date().toISOString().split('T')[0];
-            const { data } = await supabase
-                .from('study_sessions')
-                .select('total_seconds')
-                .eq('user_id', currentUser.id)
-                .eq('date', today)
-                .single();
-            if (data && data.total_seconds >= 10800) { // 3 часа
-                await unlockAchievement('speedy');
-            }
-        }
-
+        // ========== ДОСТИЖЕНИЯ ==========
         async function unlockAchievement(achievementKey) {
             if (!currentUser) return;
             
@@ -561,15 +500,12 @@
                 .single();
             
             if (!data) {
-                await supabase
-                    .from('user_achievements')
-                    .insert({
-                        user_id: currentUser.id,
-                        achievement: achievementKey,
-                        unlocked_at: new Date().toISOString()
-                    });
+                await supabase.from('user_achievements').insert({
+                    user_id: currentUser.id,
+                    achievement: achievementKey,
+                    unlocked_at: new Date().toISOString()
+                });
                 await fetchAchievements();
-                await fetchRating();
             }
         }
 
@@ -585,21 +521,20 @@
             
             achievementsList.innerHTML = Object.entries(ACHIEVEMENTS).map(([key, ach]) => `
                 <div class="achievement-badge ${unlockedSet.has(key) ? 'unlocked' : 'locked'}">
-                    <span class="achievement-icon">${ach.icon}</span>
-                    <span>${ach.name}</span>
+                    <span>${ach.icon} ${ach.name}</span>
                 </div>
             `).join('');
         }
 
         // ========== РЕЙТИНГ ==========
         async function fetchRating() {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('profiles')
                 .select('id, username, study_seconds')
                 .order('study_seconds', { ascending: false })
                 .limit(10);
             
-            if (error) return;
+            if (!data) return;
             
             ratingList.innerHTML = data.map((user, index) => {
                 let rankClass = '';
@@ -615,8 +550,7 @@
                         <div class="rating-rank ${rankClass}">${index + 1}</div>
                         <div class="rating-avatar">${(user.username || 'U')[0].toUpperCase()}</div>
                         <div class="rating-info">
-                            <div class="rating-name">${escapeHtml(user.username)} ${user.id === currentUser?.id ? '(вы)' : ''}</div>
-                            <div class="rating-points">🏆 ${user.study_seconds} сек</div>
+                            <div class="rating-name">${escapeHtml(user.username)} ${user.id === currentUser?.id ? '✓' : ''}</div>
                         </div>
                         <div class="rating-time">${hours}ч ${minutes}м</div>
                     </div>
@@ -626,25 +560,19 @@
 
         // ========== МОНИТОР ГРУППЫ ==========
         async function fetchGroup() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('username', { ascending: true });
-            
-            if (error) return;
+            const { data } = await supabase.from('profiles').select('*').order('username');
+            if (!data) return;
             
             const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
             
             groupList.innerHTML = data.map(user => {
                 const isOnline = user.status_type !== 'exit' && user.last_active && user.last_active > oneMinuteAgo;
-                let statusText = '', statusIcon = '';
-                
+                let statusIcon = '';
                 switch(user.status_type) {
-                    case 'study': statusText = '📚 Учится'; statusIcon = '📚'; break;
-                    case 'break': statusText = '☕ Перерыв'; statusIcon = '☕'; break;
-                    case 'end': statusText = '🏁 Завершил'; statusIcon = '🏁'; break;
-                    case 'exit': statusText = '⚫ Не в сети'; statusIcon = '⚫'; break;
-                    default: statusText = '⚪ Не в сети'; statusIcon = '⚪';
+                    case 'study': statusIcon = '📚'; break;
+                    case 'break': statusIcon = '☕'; break;
+                    case 'end': statusIcon = '🏁'; break;
+                    default: statusIcon = '⚫';
                 }
                 
                 const hours = Math.floor(user.study_seconds / 3600);
@@ -655,8 +583,8 @@
                         <div class="member-info">
                             <div class="member-avatar">${(user.username || 'U')[0].toUpperCase()}</div>
                             <div>
-                                <div class="member-name">${escapeHtml(user.username)} ${isOnline ? '<span class="online-dot"></span>' : ''}</div>
-                                <div>${statusIcon} ${statusText}</div>
+                                <b>${escapeHtml(user.username)}</b> ${isOnline ? '<span class="online-dot"></span>' : ''}
+                                <div>${statusIcon} ${user.status || '⚫ Не в сети'}</div>
                             </div>
                         </div>
                         <div>${hours}ч ${minutes}м</div>
@@ -670,34 +598,29 @@
             const message = chatInput.value.trim();
             if (!message || !currentUser) return;
             
-            await supabase
-                .from('messages')
-                .insert({
-                    user_id: currentUser.id,
-                    username: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0],
-                    message: message,
-                    created_at: new Date().toISOString()
-                });
+            await supabase.from('messages').insert({
+                user_id: currentUser.id,
+                username: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0],
+                message: message,
+                created_at: new Date().toISOString()
+            });
             
             chatInput.value = '';
             
-            // Проверка достижения "Активист"
+            // Проверка на активиста
             const { count } = await supabase
                 .from('messages')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', currentUser.id);
-            messageCount = count;
             if (count >= 20) await unlockAchievement('activist');
         }
         
         async function fetchMessages() {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('messages')
                 .select('*')
                 .order('created_at', { ascending: true })
                 .limit(50);
-            
-            if (error) return;
             
             if (!data || data.length === 0) {
                 chatMessages.innerHTML = '<div style="text-align: center; padding: 40px;">💬 Нет сообщений</div>';
@@ -706,7 +629,7 @@
             
             chatMessages.innerHTML = data.map(msg => `
                 <div class="chat-message ${msg.user_id === currentUser?.id ? 'me' : ''}">
-                    <div class="sender">${escapeHtml(msg.username)}</div>
+                    <div><b>${escapeHtml(msg.username)}</b></div>
                     <div>${escapeHtml(msg.message)}</div>
                 </div>
             `).join('');
@@ -733,80 +656,67 @@
             const statusLabels = {
                 study: '📚 Учусь',
                 break: '☕ Перерыв',
-                end: '🏁 Завершил сессию',
+                end: '🏁 Завершил',
                 exit: '🚪 Выход'
             };
             
-            await supabase
-                .from('profiles')
-                .update({
-                    status_type: statusType,
-                    status: statusLabels[statusType],
-                    last_active: new Date().toISOString()
-                })
-                .eq('id', currentUser.id);
+            await supabase.from('profiles').update({
+                status_type: statusType,
+                status: statusLabels[statusType],
+                last_active: new Date().toISOString()
+            }).eq('id', currentUser.id);
             
             await fetchGroup();
             await fetchRating();
+        }
+        
+        async function updateHeartbeat() {
+            if (!currentUser) return;
+            await supabase.from('profiles').update({ last_active: new Date().toISOString() }).eq('id', currentUser.id);
+            fetchGroup();
         }
         
         // ========== АВТОРИЗАЦИЯ ==========
         async function syncProfile(user) {
             if (!user) return;
             
-            const { data } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
+            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
             
             if (!data) {
-                await supabase
-                    .from('profiles')
-                    .insert({
-                        id: user.id,
-                        username: user.user_metadata?.full_name || user.email?.split('@')[0],
-                        email: user.email,
-                        status_type: 'exit',
-                        study_seconds: 0,
-                        last_active: new Date().toISOString()
-                    });
+                await supabase.from('profiles').insert({
+                    id: user.id,
+                    username: user.user_metadata?.full_name || user.email?.split('@')[0],
+                    email: user.email,
+                    status_type: 'exit',
+                    study_seconds: 0,
+                    last_active: new Date().toISOString()
+                });
                 studySeconds = 0;
             } else {
                 studySeconds = data.study_seconds || 0;
                 updateTimerDisplay();
-                if (data.status_type === 'study') {
-                    startTimer();
-                }
+                if (data.status_type === 'study') startTimer();
             }
             
-            await checkEarlyBirdAchievement();
+            // Проверка на раннюю пташку
+            const hour = new Date().getHours();
+            if (hour < 8) await unlockAchievement('early_bird');
+            
             await fetchAchievements();
         }
         
-        async function updateHeartbeat() {
-            if (!currentUser) return;
-            await supabase
-                .from('profiles')
-                .update({ last_active: new Date().toISOString() })
-                .eq('id', currentUser.id);
-            await fetchGroup();
-        }
-        
-        function setupRealtimeSubscriptions() {
+        function setupRealtime() {
             supabase
-                .channel('public-changes')
+                .channel('public')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
                     fetchGroup();
                     fetchRating();
                 })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
                     fetchMessages();
-                    fetchRating();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'user_achievements' }, () => {
                     fetchAchievements();
-                    fetchRating();
                 })
                 .subscribe();
         }
@@ -820,8 +730,17 @@
             await supabase.auth.signOut();
             if (studyTimer) clearInterval(studyTimer);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
+            showLoginPage();
+        }
+        
+        function showLoginPage() {
             loginPage.classList.remove('hidden');
             app.classList.add('hidden');
+        }
+        
+        function showApp() {
+            loginPage.classList.add('hidden');
+            app.classList.remove('hidden');
         }
         
         async function login() {
@@ -831,53 +750,70 @@
             });
         }
         
-        async function onAuthStateChange(user) {
-            if (user) {
-                currentUser = user;
-                await syncProfile(user);
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        async function init() {
+            // Получаем текущую сессию
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session?.user) {
+                currentUser = session.user;
+                await syncProfile(currentUser);
                 
-                userNameEl.textContent = user.user_metadata?.full_name || user.email;
-                userEmailEl.textContent = user.email;
-                userAvatarEl.textContent = (user.user_metadata?.full_name || user.email || 'U')[0].toUpperCase();
+                userNameEl.textContent = currentUser.user_metadata?.full_name || currentUser.email;
+                userEmailEl.textContent = currentUser.email;
+                userAvatarEl.textContent = (currentUser.user_metadata?.full_name || currentUser.email || 'U')[0].toUpperCase();
+                
+                await fetchGroup();
+                await fetchMessages();
+                await fetchRating();
+                
+                heartbeatInterval = setInterval(updateHeartbeat, 30000);
+                setupRealtime();
+                
+                showApp();
+            } else {
+                showLoginPage();
+            }
+        }
+        
+        // Слушаем изменения авторизации
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                currentUser = session.user;
+                await syncProfile(currentUser);
+                
+                userNameEl.textContent = currentUser.user_metadata?.full_name || currentUser.email;
+                userEmailEl.textContent = currentUser.email;
+                userAvatarEl.textContent = (currentUser.user_metadata?.full_name || currentUser.email || 'U')[0].toUpperCase();
                 
                 await fetchGroup();
                 await fetchMessages();
                 await fetchRating();
                 await fetchAchievements();
                 
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
                 heartbeatInterval = setInterval(updateHeartbeat, 30000);
-                setupRealtimeSubscriptions();
                 
-                loginPage.classList.add('hidden');
-                app.classList.remove('hidden');
-            } else {
-                currentUser = null;
-                loginPage.classList.remove('hidden');
-                app.classList.add('hidden');
+                showApp();
+            } else if (event === 'SIGNED_OUT') {
+                if (studyTimer) clearInterval(studyTimer);
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
+                showLoginPage();
             }
-        }
-        
-        // ========== ОБРАБОТЧИКИ ==========
-        document.querySelectorAll('.status-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                updateStatus(btn.getAttribute('data-status'));
-            });
         });
         
+        // Обработчики
+        loginBtn?.addEventListener('click', login);
+        logoutButton?.addEventListener('click', logout);
         sendBtn?.addEventListener('click', sendMessage);
         chatInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-        logoutButton?.addEventListener('click', logout);
-        loginBtn?.addEventListener('click', login);
         
-        // ========== ЗАПУСК ==========
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            onAuthStateChange(session?.user || null);
+        document.querySelectorAll('.status-btn').forEach(btn => {
+            btn.addEventListener('click', () => updateStatus(btn.getAttribute('data-status')));
         });
         
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_OUT') onAuthStateChange(null);
-            else if (session?.user) onAuthStateChange(session.user);
-        });
+        // Запуск
+        init();
     </script>
 </body>
 </html>
